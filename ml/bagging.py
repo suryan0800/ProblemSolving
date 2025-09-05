@@ -1,4 +1,5 @@
 from random import randint, seed
+import numpy as np 
 
 from sklearn.tree import DecisionTreeClassifier
 
@@ -19,62 +20,42 @@ def fit(classifiers: list[DecisionTreeClassifier], x: list[list[float]], y: list
     """
     Step 2: Train each classifier based on its own bootstrapped samples.
     """
-    # implement this
-    n = len(x) 
-    for classifier in classifiers: 
-        indices = bootstrap(n) 
-        sampled_x = []
-        sampled_y = [] 
-        for i in indices: 
-            sampled_x.append(x[i])
-            sampled_y.append(y[i])
-            
+    n = len(x)
+    x_np = np.array(x)
+    y_np = np.array(y)
+    for classifier in classifiers:
+        indices = bootstrap(n)
+        sampled_x = x_np[indices]
+        sampled_y = y_np[indices]
         classifier.fit(sampled_x, sampled_y)
 
 def predict(classifiers: list[DecisionTreeClassifier], x: list[list[float]]) -> list[int]:
     """
     Step 3: Assign class labels by a majority vote of the base classifiers.
     """
-    # implement this
-    y_lst = []
-    for classifier in classifiers: 
-        y = classifier.predict(x)
-        y_lst.append(y)
-        
-    n = len(x) 
-    n_classifiers = len(classifiers)
-    y_final = []
-    for i in range(n): 
-        hsh = {} 
-        for j in range(n_classifiers): 
-            y_val = y_lst[j][i]
-            hsh[y_val] = hsh.get(y_val, 0) + 1
-        
-        maj_cnt = 0  
-        maj_y = None
-        for y_val in hsh: 
-            if hsh[y_val] >= maj_cnt: 
-                maj_cnt = hsh[y_val] 
-                maj_y = y_val 
-                
-        for y_val in hsh: 
-            if hsh[y_val] == maj_cnt: 
-                if maj_y > y_val: 
-                    maj_y = y_val 
-        y_final.append(maj_y)
-        
-    return y_final 
-            
-        
-        
-        
+    x_np = np.array(x)
+    y_lst = np.array([classifier.predict(x_np) for classifier in classifiers])
+    predictions_per_sample = y_lst.T
+    return [np.bincount(votes).argmax() for votes in predictions_per_sample]
 
 def solution(x_train: list[list[float]], y_train: list[int], x_test: list[list[float]], n_estimators: int) -> list[int]:
     """
     Step 4: Pull everything together
     """
     seed(42)
+    np.random.seed(42)
     classifiers = [DecisionTreeClassifier(
         random_state=0) for _ in range(n_estimators)]
     fit(classifiers, x_train, y_train)
     return predict(classifiers, x_test)
+
+# Generate a simple test here
+if __name__ == '__main__':
+    x_train = [[0, 2], [0, 3], [0, 3], [1, 4], [1, 4], [1, 5]]
+    y_train = [0, 0, 0, 1, 1, 1]
+    x_test = [[0, 2], [1, 5]]
+    n_estimators = 20  # Increased for stability
+    predictions = solution(x_train, y_train, x_test, n_estimators)
+    print(f"Predictions: {predictions}") # Expected: [0, 1]
+    
+
