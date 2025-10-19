@@ -1,2 +1,2 @@
-.bin
-.avro
+*.bin
+*.avro
